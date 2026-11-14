@@ -31,12 +31,16 @@ USFM = {
 def get(path, key, params=None):
     url = f"{API}{path}" + ("?" + urllib.parse.urlencode(params, doseq=True) if params else "")
     req = urllib.request.Request(url, headers={"X-YVP-App-Key": key, "Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.load(r)
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")[:500]
-        raise RuntimeError(f"HTTP {e.code} for {path}: {body}") from None
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")[:500]
+            if e.code == 429 and attempt < 4:       # rate limited: back off and retry
+                wait = int(e.headers.get("Retry-After") or 0) or 15 * (attempt + 1)
+                print(f"  rate limited, waiting {wait}s"); time.sleep(min(wait, 120)); continue
+            raise RuntimeError(f"HTTP {e.code} for {path}: {body}") from None
 
 def list_bibles(key):
     """Try a few documented parameter shapes; return (params_used, bibles)."""
@@ -112,7 +116,11 @@ def main():
             print("ok  ", ref)
         except Exception as e:
             failed.append(ref); print("FAIL", ref, e)
-        time.sleep(0.2)  # be polite to the rate limit
+            if "HTTP 403" in str(e) and len(failed) >= 3 and len(out) == 0:
+                sys.exit("\nStopped: the API returns 403 Forbidden for this Bible. Your app key can see it "
+                         "but isn't licensed to read its text. Request access to this version in the "
+                         "YouVersion Platform portal, then run again.")
+        time.sleep(0.5)  # be polite to the rate limit
 
     if not out:
         sys.exit("Nothing fetched; leaving verses-nasb.txt unchanged.")
