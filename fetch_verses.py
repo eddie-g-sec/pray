@@ -87,6 +87,8 @@ def main():
     ap.add_argument("--bible", help="YouVersion Bible id for NASB1995")
     here = os.path.dirname(os.path.abspath(__file__))
     ap.add_argument("--refs", default=os.path.join(here, "refs.txt"))
+    ap.add_argument("--delay", type=float, default=19.0,
+                    help="seconds between requests (YouVersion allows 200/hour; 19s keeps you under it)")
     args = ap.parse_args()
     key = os.environ.get("YVP_APP_KEY") or sys.exit("Set YVP_APP_KEY")
 
@@ -111,6 +113,9 @@ def main():
                 if t.strip(): have[r.strip()] = t.strip()
     if have: print(f"Keeping {len(have)} passages already in verses-nasb.txt")
 
+    todo = sum(1 for r in refs if r not in have)
+    print(f"{todo} passages to fetch, about {todo * args.delay / 60:.0f} minutes at {args.delay:g}s apart")
+
     out, total, failed = [], 0, []
     for ref in refs:
         total += verse_count(ref)
@@ -133,7 +138,7 @@ def main():
                 sys.exit("\nStopped: the API returns 403 Forbidden for this Bible. Your app key can see it "
                          "but isn't licensed to read its text. Request access to this version in the "
                          "YouVersion Platform portal, then run again.")
-        time.sleep(0.5)  # be polite to the rate limit
+        time.sleep(args.delay)  # stay under the hourly rate limit
 
     if not out:
         sys.exit("Nothing fetched; leaving verses-nasb.txt unchanged.")
