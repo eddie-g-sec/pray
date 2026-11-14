@@ -11,7 +11,9 @@ permissions:
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
+      PYTHONUNBUFFERED: "1"
       YVP_APP_KEY: ${{ secrets.YVP_APP_KEY }}
     steps:
       - uses: actions/checkout@v5

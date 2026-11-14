@@ -103,11 +103,21 @@ def main():
     refs = [l.strip() for l in open(args.refs, encoding="utf-8").read().splitlines()
             if l.strip() and not l.startswith("#")]
 
+    have = {}
+    if os.path.exists(dest):
+        for l in open(dest, encoding="utf-8").read().splitlines():
+            if "|" in l and not l.startswith("#"):
+                r, t = l.split("|", 1)
+                if t.strip(): have[r.strip()] = t.strip()
+    if have: print(f"Keeping {len(have)} passages already in verses-nasb.txt")
+
     out, total, failed = [], 0, []
     for ref in refs:
         total += verse_count(ref)
         if total > MAX_VERSES:
             print(f"Stopping at {ref}: would pass {MAX_VERSES} verses"); break
+        if ref in have:
+            out.append(f"{ref} | {have[ref]}"); continue
         try:
             p = get(f"/bibles/{args.bible}/passages/{to_usfm(ref)}", key, {"format": "text"})
             text = clean(p.get("content") or p.get("data", {}).get("content", ""))
@@ -116,6 +126,9 @@ def main():
             print("ok  ", ref)
         except Exception as e:
             failed.append(ref); print("FAIL", ref, e)
+            if "HTTP 429" in str(e):
+                print("\nStill rate limited after retries; saving what was fetched so far. Run again later to finish.")
+                break
             if "HTTP 403" in str(e) and len(failed) >= 3 and len(out) == 0:
                 sys.exit("\nStopped: the API returns 403 Forbidden for this Bible. Your app key can see it "
                          "but isn't licensed to read its text. Request access to this version in the "
