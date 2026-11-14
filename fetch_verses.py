@@ -64,12 +64,24 @@ def list_bibles(key):
             last = e; print(f"  tried {params}: {e}")
     raise SystemExit(f"Couldn't list Bibles. Last error: {last}")
 
-def to_usfm(ref):
+def parse_ref(ref):
     m = re.match(r"^(.*) (\d+):(\d+)(?:-(\d+))?$", ref)
     if not m or m[1] not in USFM:
         raise ValueError(f"can't parse {ref!r}")
-    b, c, a, z = USFM[m[1]], m[2], m[3], m[4]
-    return f"{b}.{c}.{a}" + (f"-{b}.{c}.{z}" if z else "")
+    return USFM[m[1]], int(m[2]), int(m[3]), int(m[4] or m[3])
+
+def passage_text(bible, ref, key):
+    """Fetch one reference. Ranges try the short USFM form first, then fall back to verse by verse."""
+    b, c, a, z = parse_ref(ref)
+    fetch = lambda pid: clean((lambda p: p.get("content") or p.get("data", {}).get("content", ""))(
+        get(f"/bibles/{bible}/passages/{pid}", key, {"format": "text"})))
+    if a == z:
+        return fetch(f"{b}.{c}.{a}")
+    try:
+        return fetch(f"{b}.{c}.{a}-{z}")
+    except RuntimeError as e:
+        if "HTTP 404" not in str(e): raise
+    return " ".join(fetch(f"{b}.{c}.{v}") for v in range(a, z + 1))
 
 def verse_count(ref):
     m = re.search(r":(\d+)(?:-(\d+))?$", ref)
@@ -124,8 +136,7 @@ def main():
         if ref in have:
             out.append(f"{ref} | {have[ref]}"); continue
         try:
-            p = get(f"/bibles/{args.bible}/passages/{to_usfm(ref)}", key, {"format": "text"})
-            text = clean(p.get("content") or p.get("data", {}).get("content", ""))
+            text = passage_text(args.bible, ref, key)
             if not text: raise ValueError("empty")
             out.append(f"{ref} | {text}")
             print("ok  ", ref)
