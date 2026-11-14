@@ -8,7 +8,7 @@ using the YouVersion Platform API (free App Key: https://platform.youversion.com
 
 Standard library only. The key never reaches the website; only verses-nasb.txt is served.
 """
-import argparse, html, json, os, re, shutil, sys, time, urllib.parse, urllib.request
+import argparse, html, json, os, re, shutil, sys, time, urllib.error, urllib.parse, urllib.request
 
 API = "https://api.youversion.com/v1"
 MAX_VERSES = 500  # Lockman: no more than 500 NASB verses stored electronically
@@ -31,8 +31,34 @@ USFM = {
 def get(path, key, params=None):
     url = f"{API}{path}" + ("?" + urllib.parse.urlencode(params, doseq=True) if params else "")
     req = urllib.request.Request(url, headers={"X-YVP-App-Key": key, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")[:500]
+        raise RuntimeError(f"HTTP {e.code} for {path}: {body}") from None
+
+def list_bibles(key):
+    """Try a few documented parameter shapes; return (params_used, bibles)."""
+    attempts = [
+        {"language_ranges[]": "en", "all_available": "true"},
+        {"language_ranges[]": "eng", "all_available": "true"},
+        {"language_ranges[]": "en"},
+    ]
+    last = None
+    for params in attempts:
+        try:
+            bibles, page = [], dict(params)
+            for _ in range(50):                      # follow pagination if present
+                data = get("/bibles", key, page)
+                bibles += data.get("data", [])
+                token = data.get("next_page_token")
+                if not token: break
+                page = dict(params, page_token=token)
+            return params, bibles
+        except RuntimeError as e:
+            last = e; print(f"  tried {params}: {e}")
+    raise SystemExit(f"Couldn't list Bibles. Last error: {last}")
 
 def to_usfm(ref):
     m = re.match(r"^(.*) (\d+):(\d+)(?:-(\d+))?$", ref)
@@ -61,8 +87,9 @@ def main():
     key = os.environ.get("YVP_APP_KEY") or sys.exit("Set YVP_APP_KEY")
 
     if args.list:
-        data = get("/bibles", key, {"language_ranges[]": "en", "page_size": "*"})
-        for b in data.get("data", []):
+        params, bibles = list_bibles(key)
+        print(f"Listed with {params}: {len(bibles)} Bibles")
+        for b in bibles:
             print(b.get("id"), "|", b.get("abbreviation") or "", "|", b.get("localized_title") or b.get("title"))
         return
     if not args.bible:

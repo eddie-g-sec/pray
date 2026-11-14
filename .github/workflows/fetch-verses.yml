@@ -14,19 +14,27 @@ jobs:
     env:
       YVP_APP_KEY: ${{ secrets.YVP_APP_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - name: Check repo files
+        run: |
+          ls -la
+          test -f fetch_verses.py || { echo "::error::fetch_verses.py must be in the repo root"; exit 1; }
+          test -f refs.txt || { echo "::error::refs.txt must be in the repo root"; exit 1; }
       - name: List NASB Bibles available to the key
-        run: python3 fetch_verses.py --list | grep -i nasb || true
+        run: |
+          python3 fetch_verses.py --list > bibles.txt
+          echo "NASB matches:"; grep -i nasb bibles.txt || echo "(none found; full list below)"
+          echo "---- all English Bibles for this key ----"; cat bibles.txt
       - name: Fetch NASB 1995
         if: vars.NASB_BIBLE_ID != ''
         run: python3 fetch_verses.py --bible "${{ vars.NASB_BIBLE_ID }}"
       - name: Commit verses-nasb.txt
         if: vars.NASB_BIBLE_ID != ''
         run: |
-          rm -f *.bak
+          rm -f *.bak bibles.txt
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add verses-nasb.txt
