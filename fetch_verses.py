@@ -87,8 +87,8 @@ def main():
     ap.add_argument("--bible", help="YouVersion Bible id for NASB1995")
     here = os.path.dirname(os.path.abspath(__file__))
     ap.add_argument("--refs", default=os.path.join(here, "refs.txt"))
-    ap.add_argument("--delay", type=float, default=19.0,
-                    help="seconds between requests (YouVersion allows 200/hour; 19s keeps you under it)")
+    ap.add_argument("--delay", type=float, default=0.5,
+                    help="seconds between requests (raise this if your YouVersion rate limit is low)")
     args = ap.parse_args()
     key = os.environ.get("YVP_APP_KEY") or sys.exit("Set YVP_APP_KEY")
 
@@ -114,7 +114,7 @@ def main():
     if have: print(f"Keeping {len(have)} passages already in verses-nasb.txt")
 
     todo = sum(1 for r in refs if r not in have)
-    print(f"{todo} passages to fetch, about {todo * args.delay / 60:.0f} minutes at {args.delay:g}s apart")
+    print(f"{todo} passages to fetch, about {max(1, round(todo * (args.delay + 0.3) / 60))} minutes")
 
     out, total, failed = [], 0, []
     for ref in refs:
