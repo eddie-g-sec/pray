@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020509">
+<title>Daily Verse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#020509; --panel:rgba(4,18,26,.72); --line:rgba(111,246,255,.22); --text:#e6fbff; --muted:#7fb3bf;
+    --cyan:#6ff6ff; --cyan-dim:rgba(111,246,255,.45); --glow:0 0 6px rgba(111,246,255,.7),0 0 18px rgba(111,246,255,.35);
+    --heart:#ff5ec8; --scale:1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);min-height:100%}
+  body{
+    font-family:"Exo 2",system-ui,sans-serif;
+    padding:calc(env(safe-area-inset-top) + 28px) 20px calc(env(safe-area-inset-bottom) + 32px);
+    display:flex;justify-content:center;position:relative;overflow-x:hidden;
+    background:radial-gradient(90% 50% at 50% -5%, rgba(111,246,255,.18), transparent 65%), var(--bg);
+  }
+  /* Tron floor grid */
+  body::before{
+    content:"";position:fixed;left:-50%;right:-50%;bottom:-10%;height:55vh;z-index:-1;pointer-events:none;
+    background-image:linear-gradient(rgba(111,246,255,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(111,246,255,.35) 1px,transparent 1px);
+    background-size:48px 48px;transform:perspective(320px) rotateX(62deg);transform-origin:bottom;
+    -webkit-mask-image:linear-gradient(to top,#000 10%,transparent 85%);mask-image:linear-gradient(to top,#000 10%,transparent 85%);
+    animation:grid 6s linear infinite;
+  }
+  @keyframes grid{to{background-position:0 48px}}
+  @media (prefers-reduced-motion:reduce){body::before{animation:none}}
+  main{width:100%;max-width:560px;display:flex;flex-direction:column;gap:22px}
+  header{display:flex;align-items:center;justify-content:space-between}
+  .date{font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);text-shadow:var(--glow)}
+  .badge{font-family:Orbitron,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);border:1px solid var(--cyan-dim);border-radius:3px;padding:4px 10px;display:none;box-shadow:var(--glow)}
+  .badge.show{display:inline-block}
+  .greet{font-size:20px;color:var(--muted);font-weight:300;letter-spacing:.02em;min-height:1em}
+  .glow{display:flex;justify-content:center;margin:4px 0 -4px;filter:drop-shadow(0 0 8px rgba(111,246,255,.8))}
+  .card{position:relative;background:var(--panel);border:1px solid var(--cyan-dim);border-radius:6px;padding:32px 24px;
+    box-shadow:0 0 0 1px rgba(111,246,255,.08) inset,0 0 24px rgba(111,246,255,.18),0 0 60px rgba(111,246,255,.06);backdrop-filter:blur(6px)}
+  .card::before,.card::after{content:"";position:absolute;width:18px;height:18px;border:2px solid var(--cyan);filter:drop-shadow(0 0 4px var(--cyan))}
+  .card::before{top:-2px;left:-2px;border-right:none;border-bottom:none}
+  .card::after{bottom:-2px;right:-2px;border-left:none;border-top:none}
+  .label{font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;text-shadow:var(--glow)}
+  .verse{font-weight:400;font-size:calc(24px * var(--scale));line-height:1.5;color:var(--text);text-shadow:0 0 12px rgba(111,246,255,.25)}
+  .ref{margin-top:18px;font-family:Orbitron,sans-serif;font-size:12px;color:var(--cyan);letter-spacing:.12em;text-shadow:var(--glow)}
+  .row{display:flex;gap:10px}
+  .btn{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:rgba(4,18,26,.6);color:var(--text);border:1px solid var(--line);border-radius:4px;
+    padding:13px 12px;font:500 14px "Exo 2",sans-serif;letter-spacing:.04em;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;
+  }
+  .btn:hover{border-color:var(--cyan);box-shadow:var(--glow);color:var(--cyan)}
+  .btn:active{transform:scale(.98)}
+  .btn svg{width:18px;height:18px;flex:none}
+  .btn .n{color:var(--muted);font-size:12px}
+  .btn.loved{border-color:var(--heart);color:var(--heart);box-shadow:0 0 6px rgba(255,94,200,.6),0 0 18px rgba(255,94,200,.3)}
+  .btn.loved svg{fill:var(--heart)}
+  .listen{background:var(--cyan);color:#012027;border:none;font-family:Orbitron,sans-serif;font-weight:700;font-size:13px;letter-spacing:.24em;text-transform:uppercase;padding:16px;
+    box-shadow:0 0 10px rgba(111,246,255,.9),0 0 30px rgba(111,246,255,.45)}
+  .listen:hover{background:#a6fbff;color:#012027}
+  .listen.playing{background:rgba(4,18,26,.8);color:var(--cyan);outline:1px solid var(--cyan);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 4px rgba(111,246,255,.5),0 0 12px rgba(111,246,255,.2)}}
+  .util .btn{font-size:13px;color:var(--muted)}
+  footer{text-align:center;font-size:11.5px;color:#4f7f89;line-height:1.6}
+  footer a{color:#7fb3bf}
+  .hidden{display:none!important}
+  .setup p,.setup li{font-size:14px;line-height:1.6;color:#cfeef4}
+  .setup ol{padding-left:20px;margin:10px 0 16px;display:flex;flex-direction:column;gap:6px}
+  .setup h2{font-family:Orbitron,sans-serif;font-size:20px;letter-spacing:.08em;color:var(--cyan);text-shadow:var(--glow);margin-bottom:10px}
+  .setup a{color:var(--cyan)}
+  .batches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .batches .btn{flex:0 0 auto;padding:9px 12px;font-size:13px}
+  textarea{width:100%;min-height:180px;background:#01080c;color:var(--text);border:1px solid var(--line);border-radius:4px;padding:12px;font:13px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+  .small{font-size:12px;color:var(--muted);margin-top:8px}
+  .primary{background:var(--cyan);color:#012027;border:none;font-weight:700;box-shadow:var(--glow)}
+  .primary:hover{color:#012027;background:#a6fbff}
+  .scrim{position:fixed;inset:0;background:rgba(0,4,8,.7);display:none;align-items:flex-end;justify-content:center;z-index:10}
+  .scrim.open{display:flex}
+  .sheet{width:100%;max-width:560px;background:#03121a;border:1px solid var(--cyan-dim);border-bottom:none;border-radius:8px 8px 0 0;padding:24px 22px calc(env(safe-area-inset-bottom) + 24px);box-shadow:0 -4px 30px rgba(111,246,255,.2)}
+  .sheet h3{font-family:Orbitron,sans-serif;font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);text-shadow:var(--glow);margin-bottom:18px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.14em;text-transform:uppercase}
+  .field input,.field select{width:100%;background:#01080c;color:var(--text);border:1px solid var(--line);border-radius:4px;padding:12px;font:15px "Exo 2",sans-serif;color-scheme:dark}
+  .field input:focus,.field select:focus,textarea:focus{outline:none;border-color:var(--cyan);box-shadow:var(--glow)}
+  .seg{display:flex;gap:8px}
+  .seg button{flex:1;background:#01080c;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:10px;font:14px "Exo 2",sans-serif;cursor:pointer}
+  .seg button.on{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
+  .actions{display:flex;gap:10px;margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%) translateY(20px);background:#03121a;border:1px solid var(--cyan);color:var(--cyan);padding:10px 16px;border-radius:4px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:20;box-shadow:var(--glow)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .fade{animation:fade .6s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+</style>
+</head>
+<body>
+<main>
+  <!-- ===== Daily view ===== -->
+  <div id="dailyView" class="hidden" style="display:flex;flex-direction:column;gap:22px">
+    <header>
+      <span class="date" id="date"></span>
+      <span class="badge" id="badge"></span>
+    </header>
+    <p class="greet" id="greet"></p>
+    <div class="glow" aria-hidden="true">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        <circle cx="32" cy="32" r="29" stroke="#6ff6ff" stroke-opacity=".35"/>
+        <circle cx="32" cy="32" r="22" stroke="#6ff6ff" stroke-opacity=".18" stroke-dasharray="3 5"/>
+        <path d="M32 13v38M21 24h22" stroke="#6ff6ff" stroke-width="2.4" stroke-linecap="square"/>
+      </svg>
+    </div>
+    <section class="card fade" id="verseCard">
+      <div class="label">Verse of the Day</div>
+      <p class="verse" id="verse"></p>
+      <p class="ref" id="ref"></p>
+    </section>
+    <button class="btn listen" id="listenBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>
+      <span id="listenTxt">Listen</span>
+    </button>
+    <div class="row util">
+      <button class="btn" id="personalBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Personalize
+      </button>
+      <button class="btn" id="newBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg>New Verse
+      </button>
+    </div>
+  </div>
+
+  <section class="card hidden" id="emptyView">
+    <div class="label">Daily Verse</div>
+    <p class="verse" style="font-size:20px">NASB 1995 verses haven't been loaded yet.</p>
+    <p class="ref">Run the "Fetch verses" GitHub Action to load them.</p>
+  </section>
+
+  <footer>
+    <span id="attrib"></span>
+    <br><span id="footLinks"><a href="#" id="todayLink" style="display:none">Back to today</a></span>
+  </footer>
+</main>
+
+<!-- Personalize sheet -->
+<div class="scrim" id="personalSheet">
+  <div class="sheet">
+    <h3>Personalize</h3>
+    <div class="field">
+      <label for="nameIn">Your first name</label>
+      <input id="nameIn" maxlength="30" placeholder="Optional" autocomplete="given-name">
+    </div>
+    <div class="field">
+      <label>Text size</label>
+      <div class="seg" id="sizeSeg">
+        <button data-v="0.9">Small</button>
+        <button data-v="1" class="on">Regular</button>
+        <button data-v="1.15">Large</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="voiceSel">Voice</label>
+      <select id="voiceSel"><option value="">Device default</option></select>
+    </div>
+    <div class="actions">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* Verses come from verses-nasb.txt next to this page (Reference | text per line),
+   generated by fetch_verses.py / the "Fetch verses" GitHub Action. */
+const VERSES_FILE = "verses-nasb.txt";
+const TAG = "NASB®";
+const MAX_VERSES = 500;   // Lockman: no more than 500 NASB verses stored electronically
+
+/* ---------- Storage ---------- */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("dv:"+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k, v){ try{ localStorage.setItem("dv:"+k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseIso = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const dayNumber = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+const verseCount = ref => { const m = ref.match(/:(\d+)(?:-(\d+))?$/); return m && m[2] ? (+m[2] - +m[1] + 1) : 1; };
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2600); }
+
+/* ---------- Data ---------- */
+let VERSES = [];
+
+function parseFile(raw){
+  const out = []; let total = 0;
+  for (const l of raw.split(/\r?\n/)) {
+    if (!l.trim() || l.startsWith("#")) continue;
+    const i = l.indexOf("|"); if (i < 0) continue;
+    const v = { ref:l.slice(0,i).trim(), text:l.slice(i+1).trim() };
+    if (!v.text) continue;
+    total += verseCount(v.ref);
+    if (total > MAX_VERSES) break;
+    out.push(v);
+  }
+  return out;
+}
+
+/* ---------- Daily view ---------- */
+let current = { date:new Date(), idx:0, bonus:false };
+let prefs = Object.assign({ name:"", scale:1, voice:"" }, store.get("prefs", {}));
+const indexFor = d => ((dayNumber(d) % VERSES.length) + VERSES.length) % VERSES.length;
+
+function greeting(){
+  const h = new Date().getHours();
+  const part = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  return prefs.name ? `${part}, ${prefs.name}.` : `${part}.`;
+}
+
+function render(){
+  const v = VERSES[current.idx];
+  const isToday = !current.bonus && iso(current.date) === iso(new Date());
+  $("date").textContent = current.bonus ? "Bonus verse" : current.date.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+  $("badge").textContent = "Extra";
+  $("badge").classList.toggle("show", !isToday);
+  $("greet").textContent = greeting();
+  $("verse").textContent = v.text;
+  $("ref").textContent = `${v.ref} · ${TAG}`;
+  $("todayLink").style.display = isToday ? "none" : "inline";
+  document.documentElement.style.setProperty("--scale", prefs.scale);
+  document.title = `${v.ref} · Daily Verse`;
+  ["verseCard"].forEach(id => { const c = $(id); c.classList.remove("fade"); void c.offsetWidth; c.classList.add("fade"); });
+  stopSpeech();
+}
+
+/* Hash routes: #v-12 opens a specific verse (used by New Verse) */
+function route(){
+  const h = location.hash.slice(1);
+  if (/^v-\d+$/.test(h) && +h.slice(2) < VERSES.length) {
+    current = { date:new Date(), idx:+h.slice(2), bonus:true };
+  } else {
+    const d = new Date(); current = { date:d, idx:indexFor(d), bonus:false };
+  }
+  render();
+}
+window.addEventListener("hashchange", route);
+
+/* ---------- Listen ---------- */
+let speaking = false;
+function stopSpeech(){ try{ speechSynthesis.cancel(); }catch(e){} speaking=false; $("listenBtn").classList.remove("playing"); $("listenTxt").textContent="Listen"; }
+$("listenBtn").onclick = () => {
+  if (!("speechSynthesis" in window)) { toast("Audio isn't supported on this device"); return; }
+  if (speaking) { stopSpeech(); return; }
+  const v = VERSES[current.idx];
+  const u = new SpeechSynthesisUtterance(`${v.ref.replace(":", ", verse ")}. ${v.text.replace(/\bLORD\b/g,"Lord").replace(/\bGOD\b/g,"God")}`);
+  u.rate = 0.9;
+  const voice = speechSynthesis.getVoices().find(x => x.name === prefs.voice); if (voice) u.voice = voice;
+  u.onend = u.onerror = stopSpeech;
+  speechSynthesis.speak(u); speaking = true;
+  $("listenBtn").classList.add("playing"); $("listenTxt").textContent = "Stop";
+};
+
+$("newBtn").onclick = () => {
+  let i; do { i = Math.floor(Math.random()*VERSES.length); } while (i === current.idx && VERSES.length > 1);
+  location.hash = `v-${i}`;
+};
+
+/* ---------- Sheets ---------- */
+document.querySelectorAll(".scrim").forEach(s => s.addEventListener("click", e => {
+  if (e.target === s || e.target.hasAttribute("data-close")) s.classList.remove("open");
+}));
+const segSelect = (id, val) => $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(val)));
+$("sizeSeg").addEventListener("click", e => { if (e.target.dataset.v) segSelect("sizeSeg", e.target.dataset.v); });
+
+function loadVoices(){
+  try {
+    const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith("en"));
+    $("voiceSel").innerHTML = `<option value="">Device default</option>` + voices.map(v => `<option>${v.name}</option>`).join("");
+    $("voiceSel").value = prefs.voice;
+  } catch(e){}
+}
+try { speechSynthesis.onvoiceschanged = loadVoices; } catch(e){}
+
+$("personalBtn").onclick = () => {
+  $("nameIn").value = prefs.name; segSelect("sizeSeg", prefs.scale);
+  loadVoices(); $("personalSheet").classList.add("open");
+};
+$("saveBtn").onclick = () => {
+  prefs = { name:$("nameIn").value.trim(), scale:Number($("sizeSeg").querySelector(".on").dataset.v), voice:$("voiceSel").value };
+  store.set("prefs", prefs); $("personalSheet").classList.remove("open"); render(); toast("Saved");
+};
+
+$("todayLink").onclick = e => { e.preventDefault(); history.replaceState(null,"",location.pathname+location.search); route(); };
+
+/* ---------- Boot ---------- */
+$("attrib").innerHTML = 'Scripture quotations taken from the (NASB®) New American Standard Bible®, Copyright © 1960, 1971, 1977, 1995 by The Lockman Foundation. Used by permission. All rights reserved. <a href="https://www.lockman.org">lockman.org</a>';
+fetch(VERSES_FILE, { cache:"no-cache" })
+  .then(r => r.ok ? r.text() : "")
+  .then(t => {
+    VERSES = parseFile(t);
+    if (VERSES.length) { $("dailyView").classList.remove("hidden"); route(); }
+    else $("emptyView").classList.remove("hidden");
+  })
+  .catch(() => $("emptyView").classList.remove("hidden"));
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+# Pulls NASB 1995 text from the YouVersion API and commits verses-nasb.txt.
+# Run it by hand: Actions tab -> "Fetch verses" -> Run workflow.
+# Settings -> Secrets and variables -> Actions:
+#   Secret:   YVP_APP_KEY
+#   Variable: NASB_BIBLE_ID   (leave it unset on the first run; the log lists the ids)
+name: Fetch verses
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    env:
+      YVP_APP_KEY: ${{ secrets.YVP_APP_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: List NASB Bibles available to the key
+        run: python3 fetch_verses.py --list | grep -i nasb || true
+      - name: Fetch NASB 1995
+        if: vars.NASB_BIBLE_ID != ''
+        run: python3 fetch_verses.py --bible "${{ vars.NASB_BIBLE_ID }}"
+      - name: Commit verses-nasb.txt
+        if: vars.NASB_BIBLE_ID != ''
+        run: |
+          rm -f *.bak
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add verses-nasb.txt
+          git diff --cached --quiet || git commit -m "Update NASB verses"
+          git push
